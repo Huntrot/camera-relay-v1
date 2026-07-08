@@ -196,6 +196,39 @@ async def view_offer(request: Request):
 
     viewer_id = str(uuid.uuid4())
     pc = RTCPeerConnection(configuration=_build_rtc_config())
+    @pc.on("icegatheringstatechange")
+    def on_ice_gathering():
+        logger.info(f"🧊 Viewer ICE Gathering -> {pc.iceGatheringState}")
+
+
+    @pc.on("iceconnectionstatechange")
+    def on_ice_connection():
+        logger.info(f"🧊 Viewer ICE Connection -> {pc.iceConnectionState}")
+
+
+    @pc.on("icecandidate")
+    def on_candidate(candidate):
+        if candidate:
+            logger.info(f"📍 Viewer Candidate: {candidate}")
+        else:
+            logger.info("📍 Viewer Candidate gathering complete")
+
+    @pc.on("icegatheringstatechange")
+    def on_ice_gathering():
+        logger.info(f"🧊 Publisher ICE Gathering -> {pc.iceGatheringState}")
+
+
+    @pc.on("iceconnectionstatechange")
+    def on_ice_connection():
+        logger.info(f"🧊 Publisher ICE Connection -> {pc.iceConnectionState}")
+
+
+    @pc.on("icecandidate")
+    def on_candidate(candidate):
+        if candidate:
+            logger.info(f"📍 Publisher Candidate: {candidate}")
+        else:
+            logger.info("📍 Publisher Candidate gathering complete")
     viewer_pcs[viewer_id] = pc
 
     # Subscribe this viewer to the publisher's video track via MediaRelay
