@@ -165,6 +165,13 @@ async def publish_offer(
         if state in ("failed", "closed", "disconnected"):
             publisher_video_track = None  # Camera is no longer live
             logger.warning("📵 Publisher disconnected — camera offline")
+            
+            # Close all active viewer connections to trigger auto-reconnect on FE
+            all_viewers = list(viewer_pcs.values())
+            viewer_pcs.clear()
+            if all_viewers:
+                await asyncio.gather(*[vpc.close() for vpc in all_viewers], return_exceptions=True)
+                logger.info(f"Closed {len(all_viewers)} viewer connections due to publisher disconnect")
 
     await pc.setRemoteDescription(offer)
     answer = await pc.createAnswer()
