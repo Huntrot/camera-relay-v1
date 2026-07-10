@@ -178,8 +178,12 @@ async function connect() {
             throw Object.assign(new Error('Camera offline'), { code: 'OFFLINE' });
         }
 
+        // ── 1b. Fetch dynamic ICE/TURN Configuration from Server ─────────────
+        const iceConfigRes = await fetch(`${SERVER_URL}/api/ice-config`);
+        const iceConfig = await iceConfigRes.json();
+
         // ── 2. Create peer connection ───────────────────────────────────────
-        pc = new RTCPeerConnection(ICE_CONFIG);
+        pc = new RTCPeerConnection(iceConfig);
 
         // ── 3. Handle incoming video track ──────────────────────────────────
         pc.ontrack = event => {

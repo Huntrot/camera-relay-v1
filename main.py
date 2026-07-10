@@ -126,6 +126,21 @@ async def get_status():
         "viewer_count": len(viewer_pcs),
     }
 
+@app.get("/api/ice-config", tags=["webrtc"])
+async def get_ice_config():
+    """
+    Returns the WebRTC ICE servers configuration (STUN + TURN if configured).
+    FE calls this dynamically to initialize RTCPeerConnection.
+    """
+    servers = [{"urls": url} for url in STUN_SERVERS]
+    if TURN_URL:
+        servers.append({
+            "urls": TURN_URL,
+            "username": TURN_USERNAME,
+            "credential": TURN_CREDENTIAL,
+        })
+    return {"iceServers": servers}
+
 
 @app.post("/api/publish/offer", tags=["publisher"])
 async def publish_offer(
