@@ -21,13 +21,13 @@ API_KEY = os.getenv("API_KEY", "tandeptrai@2005")
 # Optional TURN server (needed when clients are behind strict firewalls)
 # Self-host with Coturn or use Metered.ca free tier
 
-TURN_URL        = os.getenv("TURN_URL", "turns:openrelay.metered.ca:443?transport=tcp")
-TURN_USERNAME   = os.getenv("TURN_USERNAME", "openrelayproject")
-TURN_CREDENTIAL = os.getenv("TURN_CREDENTIAL", "openrelayproject")
+# TURN_URL        = os.getenv("TURN_URL", "turns:openrelay.metered.ca:443?transport=tcp")
+# TURN_USERNAME   = os.getenv("TURN_USERNAME", "openrelayproject")
+# TURN_CREDENTIAL = os.getenv("TURN_CREDENTIAL", "openrelayproject")
 
-# TURN_URL        = os.getenv("TURN_URL", "turns:standard.relay.metered.ca:443?transport=tcp")
-# TURN_USERNAME   = os.getenv("TURN_USERNAME", "1e77b21dfa1e608e3c9dd266")
-# TURN_CREDENTIAL = os.getenv("TURN_CREDENTIAL", "Lze1p9VNMAlioJcZ")
+TURN_URL        = os.getenv("TURN_URL", "turns:standard.relay.metered.ca:443?transport=tcp")
+TURN_USERNAME   = os.getenv("TURN_USERNAME", "1e77b21dfa1e608e3c9dd266")
+TURN_CREDENTIAL = os.getenv("TURN_CREDENTIAL", "Lze1p9VNMAlioJcZ")
 
 # ─── ICE / WebRTC ─────────────────────────────────────────────────────────────
 STUN_SERVERS = [
