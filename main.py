@@ -138,10 +138,14 @@ async def publish_offer(
     """
     global publisher_pc, publisher_video_track
 
-    # Clean up any stale publisher connection
-    if publisher_pc and publisher_pc.connectionState not in ("closed", "failed"):
-        logger.info("Replacing existing publisher connection")
-        await publisher_pc.close()
+    # Clean up any existing publisher connection
+    if publisher_pc:
+        logger.info("Closing existing publisher connection")
+        try:
+            await publisher_pc.close()
+        except Exception as e:
+            logger.warning(f"⚠️ Error closing old publisher: {e}")
+    publisher_pc = None
     publisher_video_track = None
 
     data  = await request.json()
@@ -165,6 +169,9 @@ async def publish_offer(
         if state in ("failed", "closed", "disconnected"):
             publisher_video_track = None  # Camera is no longer live
             logger.warning("📵 Publisher disconnected — camera offline")
+            
+            # Close the publisher PC itself to release internal resources
+            await pc.close()
             
             # Close all active viewer connections to trigger auto-reconnect on FE
             all_viewers = list(viewer_pcs.values())
