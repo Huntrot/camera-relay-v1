@@ -170,8 +170,9 @@ async def publish_offer(
             publisher_video_track = None  # Camera is no longer live
             logger.warning("📵 Publisher disconnected — camera offline")
             
-            # Close the publisher PC itself to release internal resources
-            await pc.close()
+            # Close the publisher PC itself to release internal resources (with recursion guard)
+            if state != "closed":
+                await pc.close()
             
             # Close all active viewer connections to trigger auto-reconnect on FE
             all_viewers = list(viewer_pcs.values())
