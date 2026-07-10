@@ -59,6 +59,7 @@ relay = MediaRelay()
 publisher_pc:          Optional[RTCPeerConnection] = None
 publisher_video_track: Optional[MediaStreamTrack]  = None   # Incoming track from publisher
 viewer_pcs:            dict[str, RTCPeerConnection] = {}
+dummy_consumer_task:   Optional[asyncio.Task]       = None  # Consumes frames when no viewers exist
 
 
 # ─── App Lifecycle ────────────────────────────────────────────────────────────
@@ -136,8 +137,8 @@ async def publish_offer(
     Receives a WebRTC offer and responds with an answer.
     The server then holds the incoming video track for relay to viewers.
     """
-    global publisher_pc, publisher_video_track
-
+    global publisher_pc, publisher_video_track, dummy_consumer_task
+ 
     # Clean up any existing publisher connection
     if publisher_pc:
         logger.info("Closing existing publisher connection")
@@ -148,28 +149,53 @@ async def publish_offer(
     publisher_pc = None
     publisher_video_track = None
 
+    if dummy_consumer_task:
+        logger.info("Cancelling old dummy consumer task")
+        dummy_consumer_task.cancel()
+        dummy_consumer_task = None
+ 
     data  = await request.json()
     offer = RTCSessionDescription(sdp=data["sdp"], type=data["type"])
-
+ 
     pc = RTCPeerConnection(configuration=_build_rtc_config())
     publisher_pc = pc
-
+ 
     @pc.on("track")
     def on_track(track: MediaStreamTrack):
-        global publisher_video_track
+        global publisher_video_track, dummy_consumer_task
         logger.info(f"📹 Publisher track received: kind={track.kind}")
         if track.kind == "video":
-            publisher_video_track = track  # Store raw track — relay.subscribe() on demand
-
+            publisher_video_track = track  # Store raw track
+            
+            # Start dummy consumer on a proxy track to continuously read packets
+            # and prevent aiortc's unconsumed queue buffer memory growth (OOM prevention)
+            proxy_track = relay.subscribe(track, buffered=False)
+            
+            async def run_dummy():
+                try:
+                    while True:
+                        await proxy_track.recv()
+                except asyncio.CancelledError:
+                    logger.info("Dummy consumer cancelled")
+                except Exception as e:
+                    logger.warning(f"Dummy consumer error: {e}")
+            
+            dummy_consumer_task = asyncio.create_task(run_dummy())
+ 
     @pc.on("connectionstatechange")
     async def on_conn_state():
-        global publisher_video_track
+        global publisher_video_track, dummy_consumer_task
         state = pc.connectionState
         logger.info(f"Publisher state → {state}")
         if state in ("failed", "closed", "disconnected"):
             publisher_video_track = None  # Camera is no longer live
             logger.warning("📵 Publisher disconnected — camera offline")
             
+            # Cancel dummy consumer task
+            if dummy_consumer_task:
+                dummy_consumer_task.cancel()
+                dummy_consumer_task = None
+
             # Close the publisher PC itself to release internal resources (with recursion guard)
             if state != "closed":
                 await pc.close()
